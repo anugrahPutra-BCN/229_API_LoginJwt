@@ -13,6 +13,7 @@ async function register(req, res) {
                 message: 'Email and password are required'
             });
         }
+
         const existingUser = await User.findOne({
             where: { email }
         });
@@ -26,6 +27,7 @@ async function register(req, res) {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = await User.create({
+            username, // Ditambahkan agar username ikut tersimpan
             email,
             password: hashedPassword
         });
@@ -34,6 +36,7 @@ async function register(req, res) {
             message: 'User registered successfully',
             data: {
                 id: newUser.id,
+                username: newUser.username,
                 email: newUser.email
             }
         });
@@ -71,16 +74,22 @@ async function login(req, res) {
                 message: 'Invalid email or password'
             });
         }
+
+        // AMAN: Menggunakan fallback jika .env undefined
+        const secret = process.env.JWT_SECRET || 'secretkeybebas123';
+        const expiresIn = process.env.JWT_EXPIRES_IN || '1d'; // '1d' = 1 hari
+
         const token = jwt.sign(
             {
                 id: user.id,
                 email: user.email
             },
-            process.env.JWT_SECRET,
+            secret,
             {
-                expiresIn: process.env.JWT_EXPIRES_IN
+                expiresIn: expiresIn
             }
         );
+
         return res.status(200).json({
             message: 'Login successful',
             token
